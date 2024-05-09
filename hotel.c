@@ -248,3 +248,243 @@ void editarHospede(Hotel *hotel) {
     }
     salvarLista(hotel);
 }
+
+void liberarQuarto(Hotel *hotel) {
+    printf("\n5. Liberar quarto:\n");
+    printf("\n-> Quartos ocupados:\n");
+    int count = 0;
+    int quartosOcupados[MAX_QUARTOS];
+
+    for (int i = 0; i < MAX_QUARTOS; i++) {
+        if (hotel->quartos[i].ocupado) {
+            quartosOcupados[count++] = i + 1; 
+            printf("%d. Quarto %d\n", count, i + 1);
+        }
+    }
+
+    if (count == 0) {
+        printf("\n# Nenhum quarto ocupado foi ocupado ainda. #\n\n");
+        return;
+    }
+
+    int escolha;
+    printf("--> Escolha o quarto para liberar (Informe o numero que esta a esquerda do quarto): ");
+    scanf("%d", &escolha);
+
+    if (escolha < 1 || escolha > count) {
+        printf("\n# Escolha invalida. #\n\n");
+        return;
+    }
+
+    int quartoEscolhido = quartosOcupados[escolha - 1] - 1;
+
+    Node *atual = hotel->quartos[quartoEscolhido].inicio;
+    int numHospedes = 0;
+    while (atual != NULL) {
+        numHospedes++;
+        atual = atual->prox;
+    }
+
+    if (numHospedes == 1) {
+        liberarLista(hotel->quartos[quartoEscolhido].inicio);
+        hotel->quartos[quartoEscolhido].inicio = NULL;
+        hotel->quartos[quartoEscolhido].ocupado = 0;
+        printf("\nQuarto %d liberado com sucesso.\n\n", quartoEscolhido + 1);
+    } else {
+        printf("\nDeseja liberar apenas um hospede (1) ou mais de um (0): ");
+        int opcao;
+        scanf("%d", &opcao);
+
+        if (opcao == 1) {
+            atual = hotel->quartos[quartoEscolhido].inicio;
+            int count = 0;
+
+            printf("\nHospedes no quarto %d:\n", quartoEscolhido + 1);
+            while (atual != NULL) {
+                printf("%d. %s\n", count + 1, atual->nome);
+                atual = atual->prox;
+                count++;
+            }
+
+            if (count == 0) {
+                printf("# Nao ha hospedes no quarto %d. #\n\n", quartoEscolhido + 1);
+                return;
+            }
+
+            printf("--> Digite o numero do hospede que deseja liberar: ");
+            int hospede;
+            scanf("%d", &hospede);
+
+            if (hospede < 1 || hospede > count) {
+                printf("\n# Escolha invalida. #\n");
+                return;
+            }
+
+            atual = hotel->quartos[quartoEscolhido].inicio;
+            Node *anterior = NULL;
+            for (int i = 1; i < hospede; i++) {
+                anterior = atual;
+                atual = atual->prox;
+            }
+
+            if (anterior == NULL) {
+                hotel->quartos[quartoEscolhido].inicio = atual->prox;
+            } else {
+                anterior->prox = atual->prox;
+            }
+            free(atual);
+            printf("\nHospede liberado do quarto %d com sucesso.\n\n", quartoEscolhido + 1);
+        } else if (opcao == 0) {
+            liberarLista(hotel->quartos[quartoEscolhido].inicio);
+            hotel->quartos[quartoEscolhido].inicio = NULL;
+            hotel->quartos[quartoEscolhido].ocupado = 0;
+            printf("\n");
+            printf("\nQuarto %d liberado com sucesso.\n\n", quartoEscolhido + 1);
+        } else {
+            printf("# Opcao invalida. #\n");
+        }
+    }
+}
+
+void mostrarQuartos(Hotel *hotel) {
+    printf("\n4. Lista de quartos:\n");
+    for (int i = 0; i < MAX_QUARTOS; i++) {
+        printf("Quarto %d: ", i + 1);
+        if (hotel->quartos[i].ocupado) {
+            printf("Ocupado\n");
+        } else {
+            printf("Vazio\n");
+        }
+    }
+    printf("\n");
+}
+
+void salvarLista(Hotel *hotel) {
+    FILE *arquivo = fopen("lista_hospedes.txt", "w");
+    if (arquivo == NULL) {
+        printf("# Erro ao abrir o arquivo. #\n\n");
+        return;
+    }
+
+    for (int i = 0; i < MAX_QUARTOS; i++) {
+        if (hotel->quartos[i].ocupado == 1) {
+            fprintf(arquivo, "Quarto %d:\n", i + 1);
+            Node *atual = hotel->quartos[i].inicio;
+            while (atual != NULL) {
+                char nomeFormatado[MAX_NOME];
+                strcpy(nomeFormatado, atual->nome);
+                nomeFormatado[0] = toupper(nomeFormatado[0]);
+                for (int j = 1; nomeFormatado[j] != '\0'; j++) {
+                    if (nomeFormatado[j - 1] == ' ') { 
+                        nomeFormatado[j] = toupper(nomeFormatado[j]); 
+                    }
+                }
+                fprintf(arquivo, "- %s | Idade: %d | CPF: %s\n", nomeFormatado, atual->idade, atual->cpf);
+                atual = atual->prox;
+            }
+        }
+    }
+
+    fclose(arquivo);
+    printf("\nLista de hospedes salva com sucesso no arquivo lista_hospedes.txt.\n\n");
+}
+
+void carregarLista(Hotel *hotel) {
+    FILE *arquivo = fopen("lista_hospedes.txt", "r");
+    if (arquivo == NULL) {
+        printf("Arquivo nao encontrado. Criando novo arquivo de registro de hospedes.\n");
+        return;
+    }
+
+    char linha[500];
+    char nome[MAX_NOME];
+    int idade;
+    char cpf[MAX_CPF];
+    int quarto = -1;
+
+    while (fgets(linha, sizeof(linha), arquivo) != NULL) {
+        if (sscanf(linha, "Quarto %d:", &quarto) == 1) {
+            quarto--;
+        } else {
+            Node *temp = (Node *)malloc(sizeof(Node));
+            if (temp == NULL) {
+                printf("Erro ao alocar memoria.\n");
+                return;
+            }
+            sscanf(linha, "- %[^|] | Idade: %d | CPF: %s", nome, &idade, cpf);
+            strcpy(temp->nome, nome);
+            temp->idade = idade;
+            strcpy(temp->cpf, cpf);
+            temp->prox = NULL;
+
+            Node *atual = hotel->quartos[quarto].inicio;
+            if (atual == NULL) {
+                hotel->quartos[quarto].inicio = temp;
+            } else {
+                while (atual->prox != NULL) {
+                    atual = atual->prox;
+                }
+                atual->prox = temp;
+            }
+            hotel->quartos[quarto].ocupado = 1;
+        }
+    }
+
+    fclose(arquivo);
+}
+
+void liberarLista(Node *inicio) {
+    Node *atual = inicio;
+    while (atual != NULL) {
+        Node *temp = atual;
+        atual = atual->prox;
+        free(temp);
+    }
+}
+
+int main() {
+    Hotel hotel;
+    inicializarHotel(&hotel);
+    carregarLista(&hotel);
+    int opcao;
+
+    do {
+        mostrarMenu();
+        scanf("%d", &opcao);
+        getchar(); 
+        switch (opcao) {
+            case 1:
+                inserirHospede(&hotel);
+                break;
+            case 2:
+                listarHospedes(&hotel);
+                break;
+            case 3:
+                buscarHospede(&hotel);
+                break;
+            case 4:
+                editarHospede(&hotel);
+                break;
+            case 5:
+                liberarQuarto(&hotel);
+                break;
+            case 6:
+                mostrarQuartos(&hotel);
+                break;
+            case 7:
+                salvarLista(&hotel);
+                break;
+            case 0:
+                printf("Saindo...\n");
+                break;
+            default:
+                printf("Opcao invalida. Tente novamente.\n");
+        }
+    } while (opcao != 0);
+
+    for (int i = 0; i < MAX_QUARTOS; i++) {
+        liberarLista(hotel.quartos[i].inicio);
+    }
+
+    return 0;
+}
