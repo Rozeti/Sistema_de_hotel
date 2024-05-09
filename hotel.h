@@ -16,3 +16,20 @@ typedef struct {
     Node *inicio;
     int ocupado;
 } Quarto;
+
+typedef struct {
+    Quarto quartos[MAX_QUARTOS];
+} Hotel;
+
+void inicializarHotel(Hotel *hotel);
+void inserirHospede(Hotel *hotel);
+void listarHospedes(Hotel *hotel);
+void buscarHospede(Hotel *hotel);
+void editarHospede(Hotel *hotel);
+void liberarQuarto(Hotel *hotel);
+void mostrarQuartos(Hotel *hotel);
+void salvarLista(Hotel *hotel);
+void carregarLista(Hotel *hotel);
+void liberarLista(Node *inicio);
+
+#endif 
